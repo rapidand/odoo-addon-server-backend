@@ -44,18 +44,16 @@ class Base(models.AbstractModel):
                 row = dict(zip(clean_fields, data[info["record"]]))
                 match = self
 
-                # Handle many-to-many fields properly
-                for field_name in clean_fields:
+                # Skip many-to-many fields
+                for field_name in list(row.keys()):
                     field = self._fields.get(field_name)
-                    if field and field.type == 'many2many':
-                        # Many-to-many fields should remain as a list of ids or names
-                        if isinstance(row[field_name], str):
-                            row[field_name] = [x.strip() for x in row[field_name].split(',')]
+                    if field and field.type == "many2many":
+                        row.pop(field_name)
 
                 if xmlid:
                     # Skip rows with ID, they do not need all this
                     row["id"] = xmlid
-                    newdata.append(tuple(row[f] for f in clean_fields))
+                    newdata.append(tuple(row[f] for f in clean_fields if f in row))
                     continue
                 elif dbid:
                     # Find the xmlid for this dbid
@@ -70,7 +68,7 @@ class Base(models.AbstractModel):
                 row["id"] = ext_id[match.id] if match else row.get("id", "")
 
                 # Store the modified row, in the same order as fields
-                newdata.append(tuple(row[f] for f in clean_fields))
+                newdata.append(tuple(row[f] for f in clean_fields if f in row))
 
             # We will import the patched data to get updates on matches
             data = newdata
